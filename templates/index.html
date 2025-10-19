@@ -104,7 +104,7 @@
                 </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="nGroup">
                 <label for="n">Số phần tử cần sinh:</label>
                 <input type="number" id="n" name="n" value="10" min="2" max="100">
             </div>
@@ -158,6 +158,13 @@
                     Lũy thừa: dùng <code>^</code> hoặc <code>**</code><br>
                     <strong>Ví dụ:</strong> <code>0.01*x^2 + 0.05*x + 0.01</code>, <code>0.01*(1.5^x)</code>
                 </p>
+
+                <label for="custom_start">Giá trị x bắt đầu:</label>
+                <input type="number" id="custom_start" value="0" step="1" style="margin-bottom: 10px;">
+                <p style="color: #666; font-size: 12px; margin-top: -5px; margin-bottom: 10px;">
+                    <em>Ví dụ: Nếu bắt đầu từ 5, x sẽ chạy từ 5, 6, 7, ...</em>
+                </p>
+
                 <label for="custom_formula">Công thức:</label>
                 <input type="text" id="custom_formula" value="0.01*x^2 + 0.02*x + 0.01" placeholder="0.01*x^2 + 0.02*x + 0.01">
                 <p style="color: #666; font-size: 13px; margin-top: 5px;">
@@ -217,12 +224,20 @@
         const form = document.getElementById('sequenceForm');
         const errorDiv = document.getElementById('error');
         const ctx = document.getElementById('sequenceChart').getContext('2d');
+        const nGroup = document.getElementById('nGroup');
         let chart = null;
 
         // Handle sequence type change
         sequenceTypeSelect.addEventListener('change', function() {
             parameterDivs.forEach(div => div.classList.remove('active'));
             document.getElementById(this.value + 'Params').classList.add('active');
+
+            // Hide "Số phần tử cần sinh" only for Manual Input
+            if (this.value === 'manual') {
+                nGroup.style.display = 'none';
+            } else {
+                nGroup.style.display = 'block';
+            }
         });
 
         // Handle form submission
@@ -247,6 +262,7 @@
                 requestData.c = parseFloat(document.getElementById('quad_c').value);
             } else if (sequenceType === 'custom') {
                 requestData.formula = document.getElementById('custom_formula').value;
+                requestData.start_value = parseInt(document.getElementById('custom_start').value);
             } else if (sequenceType === 'manual') {
                 requestData.manual_input = document.getElementById('manual_input').value;
                 requestData.predict_method = document.getElementById('predict_method').value;

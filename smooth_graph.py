@@ -71,10 +71,12 @@ elif choice == "4":
     print("  - 0.01*(1.5^x)           → Tăng hàm mũ (chậm hơn Martingale)")
     print("  - 0.01 + 0.001*x^3       → Tăng theo bậc 3")
 
-    formula = input("\nNhập công thức: ")
+    start_value = int(input("\nGiá trị x bắt đầu (ví dụ: 0, 5, 10...): "))
+    formula = input("Nhập công thức: ")
     formula_python = parse_formula(formula)
 
     print(f"\nCông thức đã parse: {formula_python}")
+    print(f"x sẽ chạy từ {start_value} đến {start_value + n - 1}")
     confirm = input("Tiếp tục? (y/n): ")
 
     if confirm.lower() != 'y':
@@ -82,7 +84,7 @@ elif choice == "4":
         exit()
 
     # Generate sequence
-    for i in range(n):
+    for i in range(start_value, start_value + n):
         value = evaluate_formula(formula_python, i)
         if value is None:
             print(f"Lỗi: Không thể tính giá trị tại x={i}")

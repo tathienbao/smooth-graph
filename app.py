@@ -30,11 +30,11 @@ def evaluate_formula(formula, x_value):
     except:
         return None
 
-def generate_custom(formula, n):
+def generate_custom(formula, n, start_value=0):
     """Generate sequence from custom formula"""
     formula_python = parse_formula(formula)
     sequence = []
-    for i in range(n):
+    for i in range(start_value, start_value + n):
         value = evaluate_formula(formula_python, i)
         if value is None:
             raise ValueError(f"Cannot evaluate formula at x={i}")
@@ -158,7 +158,8 @@ def generate_sequence():
             sequence = generate_quadratic(a, b, c, n)
         elif sequence_type == 'custom':
             formula = data['formula']
-            sequence = generate_custom(formula, n)
+            start_value = int(data.get('start_value', 0))
+            sequence = generate_custom(formula, n, start_value)
         elif sequence_type == 'manual':
             input_str = data['manual_input']
             historical_data = parse_manual_input(input_str)

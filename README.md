@@ -85,8 +85,17 @@ Perfect for planning position sizes in trading sequences:
 
 **Example - Custom Formula:**
 - Select: "Custom Formula"
+- Start value: 0 (x begins at 0)
 - Formula: `0.01*(1.3^x)`
+- Number of orders: 30
 - Result: Exponential growth slower than Martingale
+
+**Example - Custom Formula with Offset:**
+- Select: "Custom Formula"
+- Start value: 10 (x begins at 10)
+- Formula: `5 + 2*x + 0.3*x^2`
+- Number of orders: 20
+- Result: Beautiful parabolic curve starting from order #10
 
 #### 2. Price Prediction
 Analyze and forecast price movements:
@@ -146,17 +155,25 @@ The chart will show:
 ### Custom Formula Syntax
 Supports standard mathematical operations:
 - Variables: `x`, `a`, or `i` (position/index)
+- Start value: Customize where x begins (default: 0)
 - Operations: `+`, `-`, `*`, `/`
 - Power: `^` or `**`
 - Parentheses: `()`
 
 **Examples:**
 ```
-0.01 + 0.02*x           # Linear growth
-0.01*x^2 + 0.05*x + 0.01  # Quadratic
-0.01*(1.5^x)            # Exponential (custom base)
-0.01 + 0.001*x^3        # Cubic growth
+0.01 + 0.02*x                # Linear growth
+0.01*x^2 + 0.05*x + 0.01     # Quadratic
+0.01*(1.5^x)                 # Exponential (custom base)
+0.01 + 0.001*x^3             # Cubic growth
+5 + 2*x + 0.3*x^2            # Smooth parabola (BEST for beautiful curves!)
+50 + 10*x - 0.2*x^2 + 0.005*x^3  # Wave pattern with natural curves
 ```
+
+**Start Value Usage:**
+- Start value = 0: x runs from 0, 1, 2, 3, ...
+- Start value = 5: x runs from 5, 6, 7, 8, ...
+- Start value = 10: x runs from 10, 11, 12, ... (useful for continuation scenarios)
 
 ---
 

@@ -4,69 +4,115 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a simple Python application for generating and visualizing mathematical sequences (Fibonacci, Martingale, and Quadratic) using the `plotext` library for terminal-based plotting. The project includes PyInstaller configuration for creating standalone executables.
+Smooth Graph is a dual-interface Python application for:
+- **Lot Sizing Strategies**: Generate and visualize position sizing for trading (Fibonacci, Martingale, Quadratic, Custom formulas)
+- **Price Prediction**: Analyze historical data and predict future values using Linear Regression, Polynomial, SMA, EMA
+
+The project includes both a web interface (Flask + Chart.js) and a terminal CLI (plotext).
 
 ## Environment Setup
 
 This project uses a Python virtual environment. To activate it:
 ```bash
-source /home/tathienbao/python_envs/smoothenv/bin/activate
+# Linux/Mac
+source bin/activate
+
+# Windows
+.\Scripts\activate
+```
+
+If setting up from scratch:
+```bash
+python -m venv .
+source bin/activate  # or .\Scripts\activate on Windows
+pip install Flask plotext
 ```
 
 ## Dependencies
 
-The project has minimal dependencies:
-- `plotext` (5.3.2) - for terminal-based plotting
+Core dependencies:
+- `Flask` (3.1.2) - Web framework
+- `plotext` (5.3.2) - Terminal-based plotting
+- PyInstaller (optional) - For building executables
 
 Install dependencies:
 ```bash
-pip install plotext
+pip install Flask plotext
 ```
 
-## Build Commands
+## Running the Application
 
-### Building Executable
-The project uses PyInstaller to create standalone executables:
+### Web Interface (Recommended)
 ```bash
-# Activate virtual environment first
-source /home/tathienbao/python_envs/smoothenv/bin/activate
-
-# Build executable using the spec file
-pyinstaller smooth_graph.spec
+python app.py
 ```
+Then open browser at: http://localhost:5000
 
-The built executable will be in the `dist/` directory.
-
-### Running the Application
+### Terminal CLI
 ```bash
-# Direct Python execution
 python smooth_graph.py
+```
 
-# Or run the built executable (if available)
+### Building Executable (Optional)
+```bash
+pyinstaller smooth_graph.spec
 ./dist/smooth_graph
 ```
 
 ## Code Architecture
 
-### Main Application (`smooth_graph.py`)
-The application is a single-file script with a simple procedural structure:
+### Web Application (`app.py`)
+Flask backend with prediction algorithms:
+- **Lot Sizing**: Fibonacci, Martingale, Quadratic, Custom formula generation
+- **Price Prediction**: SMA, EMA, Linear/Polynomial regression
+- **API Endpoints**:
+  - `GET /` - Serve web UI
+  - `POST /generate` - Generate sequences/predictions
+- **Security**: Restricted eval for formula parsing
 
-1. **User Input Phase**: Prompts user to select sequence type (1-3) and parameters
-2. **Sequence Generation**: Creates mathematical sequences based on user choice:
-   - Fibonacci: Recursive sequence where each term is sum of previous two
-   - Martingale: Exponential doubling sequence (a₀ × 2ⁱ)
-   - Quadratic: Polynomial sequence (Ai² + Bi + C)
-3. **Visualization**: Uses `plotext` to render terminal-based graphs with customization
+### Terminal CLI (`smooth_graph.py`)
+Standalone lot sizing calculator:
+- Interactive prompts for strategy selection
+- Custom formula support with start value
+- ASCII-based chart visualization
+- Statistics display
 
-### PyInstaller Configuration (`smooth_graph.spec`)
-Standard PyInstaller spec file for building standalone executables with:
-- Console application mode
-- UPX compression enabled
-- Single-file bundle configuration
+### Web UI (`templates/index.html`)
+Single-page application with:
+- Chart.js for interactive visualizations
+- Dynamic form handling (5 sequence types)
+- Dual-line charts (historical + predicted data)
+- Responsive design
+
+## Key Features
+
+### Lot Sizing (Trading)
+1. **Fibonacci**: Progressive increase (a₀, a₁, a₀+a₁, ...)
+2. **Martingale**: Exponential doubling (a₀ × 2ⁿ)
+3. **Quadratic**: Polynomial growth (Ax² + Bx + C)
+4. **Custom Formula**: User-defined expressions (supports ^, **, +, -, *, /)
+
+### Price Prediction (Manual Input)
+1. **Input**: Historical prices (semicolon-separated)
+2. **Methods**: Linear Regression, Polynomial (degree 2), SMA, EMA
+3. **Output**: Dual chart with actual (blue) + predicted (red) lines
+
+## Custom Formula Syntax
+
+Variables: `x`, `a`, or `i` (position/index)
+Operations: `+`, `-`, `*`, `/`
+Power: `^` or `**`
+
+Examples:
+- `0.01 + 0.02*x` - Linear growth
+- `0.01*x^2 + 0.05*x + 0.01` - Quadratic
+- `0.01*(1.5^x)` - Exponential
+- `5 + 2*x + 0.3*x^2` - Smooth parabola
 
 ## Development Notes
 
-- The application uses Vietnamese language prompts and labels
-- No testing framework is currently configured
-- No linting or code formatting tools are set up
-- The codebase is intentionally simple and self-contained
+- Vietnamese language UI/prompts
+- No testing framework configured
+- Security: eval() with restricted builtins
+- Simple, self-contained architecture
+- Stateless API design
