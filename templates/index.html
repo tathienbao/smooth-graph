@@ -99,6 +99,8 @@
                     <option value="fibonacci">Fibonacci</option>
                     <option value="martingale">Martingale</option>
                     <option value="quadratic">Quadratic (Bậc 2)</option>
+                    <option value="custom">Custom Formula (Công thức tùy chỉnh)</option>
+                    <option value="manual">Manual Input (Nhập số trực tiếp)</option>
                 </select>
             </div>
 
@@ -148,6 +150,57 @@
                 </div>
             </div>
 
+            <!-- Custom Formula Parameters -->
+            <div id="customParams" class="parameters">
+                <h3>Công thức tùy chỉnh</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                    Nhập công thức với biến <strong>x</strong>, <strong>a</strong>, hoặc <strong>i</strong> (thứ tự: 0, 1, 2, ...)<br>
+                    Lũy thừa: dùng <code>^</code> hoặc <code>**</code><br>
+                    <strong>Ví dụ:</strong> <code>0.01*x^2 + 0.05*x + 0.01</code>, <code>0.01*(1.5^x)</code>
+                </p>
+                <label for="custom_formula">Công thức:</label>
+                <input type="text" id="custom_formula" value="0.01*x^2 + 0.02*x + 0.01" placeholder="0.01*x^2 + 0.02*x + 0.01">
+                <p style="color: #666; font-size: 13px; margin-top: 5px;">
+                    <strong>Gợi ý:</strong><br>
+                    • <code>0.01 + 0.02*x</code> → Tăng tuyến tính<br>
+                    • <code>0.01*(1.3^x)</code> → Tăng hàm mũ (chậm hơn Martingale)<br>
+                    • <code>0.01 + 0.001*x^3</code> → Tăng theo bậc 3
+                </p>
+            </div>
+
+            <!-- Manual Input Parameters -->
+            <div id="manualParams" class="parameters">
+                <h3>Nhập dãy số trực tiếp & Dự đoán</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                    Nhập các số cách nhau bởi dấu <strong>chấm phẩy (;)</strong><br>
+                    <strong>Ví dụ:</strong> Giá vàng, cổ phiếu, hoặc bất kỳ dãy số nào
+                </p>
+                <label for="manual_input">Dãy số (cách nhau bởi dấu ;):</label>
+                <textarea id="manual_input" rows="3" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px; font-family: monospace;" placeholder="100;102;105;103;108;110;115;112;118;120">100;102;105;103;108;110;115;112;118;120;125;128;130;132;135;138;140;142;145;148</textarea>
+
+                <div style="margin-top: 15px;">
+                    <label for="predict_method">Phương pháp dự đoán:</label>
+                    <select id="predict_method" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px;">
+                        <option value="none">Không dự đoán (chỉ vẽ dữ liệu)</option>
+                        <option value="linear" selected>Linear Regression (Hồi quy tuyến tính)</option>
+                        <option value="poly2">Polynomial Bậc 2 (Parabola)</option>
+                        <option value="sma">Simple Moving Average (SMA)</option>
+                        <option value="ema">Exponential Moving Average (EMA)</option>
+                    </select>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <label for="predict_count">Số điểm dự đoán:</label>
+                    <input type="number" id="predict_count" value="10" min="1" max="50" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px;">
+                </div>
+
+                <p style="color: #666; font-size: 13px; margin-top: 10px;">
+                    <strong>💡 Gợi ý:</strong><br>
+                    • <strong>Linear/Poly2</strong>: Tốt cho dữ liệu có xu hướng rõ ràng<br>
+                    • <strong>SMA/EMA</strong>: Tốt cho dữ liệu dao động, ít xu hướng
+                </p>
+            </div>
+
             <button type="submit">🚀 Tạo đồ thị</button>
         </form>
 
@@ -192,6 +245,13 @@
                 requestData.a = parseFloat(document.getElementById('quad_a').value);
                 requestData.b = parseFloat(document.getElementById('quad_b').value);
                 requestData.c = parseFloat(document.getElementById('quad_c').value);
+            } else if (sequenceType === 'custom') {
+                requestData.formula = document.getElementById('custom_formula').value;
+            } else if (sequenceType === 'manual') {
+                requestData.manual_input = document.getElementById('manual_input').value;
+                requestData.predict_method = document.getElementById('predict_method').value;
+                requestData.predict_count = parseInt(document.getElementById('predict_count').value);
+                requestData.n = 999; // Dummy value, will be ignored by backend
             }
 
             try {
@@ -206,7 +266,13 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    updateChart(data.indices, data.sequence, sequenceType);
+                    if (data.predictions) {
+                        // Chart with predictions
+                        updateChartWithPredictions(data.indices, data.sequence, data.prediction_indices, data.predictions, sequenceType);
+                    } else {
+                        // Normal chart
+                        updateChart(data.indices, data.sequence, sequenceType);
+                    }
                 } else {
                     showError(data.error || 'Có lỗi xảy ra');
                 }
@@ -219,7 +285,9 @@
             const typeNames = {
                 'fibonacci': 'Fibonacci',
                 'martingale': 'Martingale',
-                'quadratic': 'Quadratic'
+                'quadratic': 'Quadratic',
+                'custom': 'Custom Formula',
+                'manual': 'Manual Input'
             };
 
             if (chart) {
@@ -262,6 +330,75 @@
                         title: {
                             display: true,
                             text: `Đồ thị dãy ${typeNames[type]}`
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartWithPredictions(historicalIndices, historicalData, predictionIndices, predictions, type) {
+            if (chart) {
+                chart.destroy();
+            }
+
+            const datasets = [
+                {
+                    label: 'Dữ liệu thực tế',
+                    data: historicalData,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 3
+                },
+                {
+                    label: 'Dự đoán',
+                    data: Array(historicalData.length).fill(null).concat(predictions),
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 3
+                }
+            ];
+
+            // Connection line between last historical and first prediction
+            const allIndices = historicalIndices.concat(predictionIndices);
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: allIndices,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Giá trị'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Chỉ số (n)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Dữ liệu thực tế & Dự đoán'
+                        },
+                        legend: {
+                            display: true
                         }
                     }
                 }
