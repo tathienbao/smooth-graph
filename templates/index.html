@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smooth Graph - Trình tạo dãy số</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        select:focus, input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .parameters {
+            display: none;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .parameters.active {
+            display: block;
+        }
+        .chart-container {
+            margin-top: 30px;
+            height: 400px;
+        }
+        .error {
+            color: #dc3545;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8d7da;
+            border-radius: 5px;
+            display: none;
+        }
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+        .col {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔢 Smooth Graph - Trình tạo dãy số</h1>
+        
+        <form id="sequenceForm">
+            <div class="form-group">
+                <label for="sequenceType">Chọn loại dãy:</label>
+                <select id="sequenceType" name="sequenceType">
+                    <option value="fibonacci">Fibonacci</option>
+                    <option value="martingale">Martingale</option>
+                    <option value="quadratic">Quadratic (Bậc 2)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="n">Số phần tử cần sinh:</label>
+                <input type="number" id="n" name="n" value="10" min="2" max="100">
+            </div>
+
+            <!-- Fibonacci Parameters -->
+            <div id="fibonacciParams" class="parameters active">
+                <h3>Tham số Fibonacci</h3>
+                <div class="row">
+                    <div class="col">
+                        <label for="fib_a0">a₀ (phần tử đầu tiên):</label>
+                        <input type="number" id="fib_a0" value="0">
+                    </div>
+                    <div class="col">
+                        <label for="fib_a1">a₁ (phần tử thứ hai):</label>
+                        <input type="number" id="fib_a1" value="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Martingale Parameters -->
+            <div id="martingaleParams" class="parameters">
+                <h3>Tham số Martingale</h3>
+                <label for="mart_a0">Giá trị đầu tiên (a₀):</label>
+                <input type="number" id="mart_a0" value="1" step="0.1">
+            </div>
+
+            <!-- Quadratic Parameters -->
+            <div id="quadraticParams" class="parameters">
+                <h3>Tham số Quadratic: ax² + bx + c</h3>
+                <div class="row">
+                    <div class="col">
+                        <label for="quad_a">a (hệ số x²):</label>
+                        <input type="number" id="quad_a" value="1" step="0.1">
+                    </div>
+                    <div class="col">
+                        <label for="quad_b">b (hệ số x):</label>
+                        <input type="number" id="quad_b" value="0" step="0.1">
+                    </div>
+                    <div class="col">
+                        <label for="quad_c">c (hằng số):</label>
+                        <input type="number" id="quad_c" value="0" step="0.1">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit">🚀 Tạo đồ thị</button>
+        </form>
+
+        <div id="error" class="error"></div>
+
+        <div class="chart-container">
+            <canvas id="sequenceChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const sequenceTypeSelect = document.getElementById('sequenceType');
+        const parameterDivs = document.querySelectorAll('.parameters');
+        const form = document.getElementById('sequenceForm');
+        const errorDiv = document.getElementById('error');
+        const ctx = document.getElementById('sequenceChart').getContext('2d');
+        let chart = null;
+
+        // Handle sequence type change
+        sequenceTypeSelect.addEventListener('change', function() {
+            parameterDivs.forEach(div => div.classList.remove('active'));
+            document.getElementById(this.value + 'Params').classList.add('active');
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            errorDiv.style.display = 'none';
+
+            const sequenceType = sequenceTypeSelect.value;
+            const n = parseInt(document.getElementById('n').value);
+
+            let requestData = { type: sequenceType, n: n };
+
+            // Add parameters based on sequence type
+            if (sequenceType === 'fibonacci') {
+                requestData.a0 = parseInt(document.getElementById('fib_a0').value);
+                requestData.a1 = parseInt(document.getElementById('fib_a1').value);
+            } else if (sequenceType === 'martingale') {
+                requestData.a0 = parseFloat(document.getElementById('mart_a0').value);
+            } else if (sequenceType === 'quadratic') {
+                requestData.a = parseFloat(document.getElementById('quad_a').value);
+                requestData.b = parseFloat(document.getElementById('quad_b').value);
+                requestData.c = parseFloat(document.getElementById('quad_c').value);
+            }
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateChart(data.indices, data.sequence, sequenceType);
+                } else {
+                    showError(data.error || 'Có lỗi xảy ra');
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        });
+
+        function updateChart(indices, sequence, type) {
+            const typeNames = {
+                'fibonacci': 'Fibonacci',
+                'martingale': 'Martingale',
+                'quadratic': 'Quadratic'
+            };
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: indices,
+                    datasets: [{
+                        label: `Dãy ${typeNames[type]}`,
+                        data: sequence,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Giá trị'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Chỉ số (n)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Đồ thị dãy ${typeNames[type]}`
+                        }
+                    }
+                }
+            });
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Generate initial chart
+        form.dispatchEvent(new Event('submit'));
+    </script>
+</body>
+</html>
