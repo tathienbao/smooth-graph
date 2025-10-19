@@ -137,6 +137,86 @@ def predict_next_values(data, method, count=10):
 def index():
     return render_template('index.html')
 
+@app.route('/compare-all', methods=['POST'])
+def compare_all():
+    """Generate all curves for comparison"""
+    try:
+        data = request.get_json()
+        n = int(data.get('n', 50))
+        start_value = int(data.get('start_value', 0))
+
+        results = {}
+
+        # Fibonacci
+        if data.get('enable_fibonacci', True):
+            fib_a0 = float(data.get('fib_a0', 1))
+            fib_a1 = float(data.get('fib_a1', 1))
+            results['fibonacci'] = generate_fibonacci(fib_a0, fib_a1, n)
+
+        # Martingale
+        if data.get('enable_martingale', True):
+            mart_a0 = float(data.get('mart_a0', 0.01))
+            results['martingale'] = generate_martingale(mart_a0, n)
+
+        # Quadratic
+        if data.get('enable_quadratic', True):
+            quad_a = float(data.get('quad_a', 0.01))
+            quad_b = float(data.get('quad_b', 0.02))
+            quad_c = float(data.get('quad_c', 0.01))
+            results['quadratic'] = generate_quadratic(quad_a, quad_b, quad_c, n)
+
+        # Custom formulas (up to 3)
+        for i in range(1, 4):
+            formula_key = f'custom_formula_{i}'
+            if data.get(f'enable_custom_{i}', False) and data.get(formula_key):
+                formula = data[formula_key]
+                results[f'custom_{i}'] = generate_custom(formula, n, start_value)
+
+        # Manual data
+        manual_data = None
+        if data.get('enable_manual', False) and data.get('manual_input'):
+            manual_data = parse_manual_input(data['manual_input'])
+            results['manual'] = manual_data
+
+        # Predictions from manual data
+        if manual_data and data.get('enable_predictions', False):
+            predict_count = int(data.get('predict_count', 10))
+
+            if data.get('enable_linear_pred', True):
+                results['pred_linear'] = predict_next_values(manual_data, 'linear', predict_count)
+
+            if data.get('enable_poly2_pred', True):
+                results['pred_poly2'] = predict_next_values(manual_data, 'poly2', predict_count)
+
+            if data.get('enable_sma_pred', True):
+                results['pred_sma'] = predict_next_values(manual_data, 'sma', predict_count)
+
+            if data.get('enable_ema_pred', True):
+                results['pred_ema'] = predict_next_values(manual_data, 'ema', predict_count)
+
+        # Calculate metrics for each curve
+        metrics = {}
+        for name, sequence in results.items():
+            if sequence and not name.startswith('pred_'):
+                metrics[name] = {
+                    'first': sequence[0],
+                    'last': sequence[-1],
+                    'total': sum(sequence),
+                    'average': sum(sequence) / len(sequence),
+                    'count': len(sequence),
+                    'growth_rate': (sequence[-1] - sequence[0]) / sequence[0] * 100 if sequence[0] != 0 else 0
+                }
+
+        return jsonify({
+            'curves': results,
+            'metrics': metrics,
+            'indices': list(range(n)),
+            'prediction_indices': list(range(n, n + data.get('predict_count', 10))) if manual_data else []
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 @app.route('/generate', methods=['POST'])
 def generate_sequence():
     try:
